@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MRP Lookup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    padding: 40px;
+  }
+  .box {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 650px;
+    margin: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  .suggestions {
+    border: 1px solid #ddd;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 5px;
+  }
+  .suggestions div {
+    padding: 10px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .suggestions div:hover {
+    background: #f0f0f0;
+  }
+  .result {
+    margin-top: 20px;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+  .result strong {
+    display: inline-block;
+    width: 160px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>MRP Lookup</h2>
+
+  <input type="text" id="search" placeholder="Type part number...">
+  <div class="suggestions" id="suggestions"></div>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script src="data.js"></script>
+
+<script>
+const searchInput = document.getElementById("search");
+const suggestions = document.getElementById("suggestions");
+const resultBox = document.getElementById("result");
+
+const keys = Object.keys(priceData);
+
+searchInput.addEventListener("input", function () {
+  const q = this.value.trim().toLowerCase();
+  suggestions.innerHTML = "";
+  resultBox.innerHTML = "";
+
+  if (q.length < 2) return;
+
+  let count = 0;
+  for (let key of keys) {
+    const d = priceData[key];
+    const values = [d.new_part, d.old_part, d.third_part].join(" ").toLowerCase();
+
+    if (values.includes(q)) {
+      const div = document.createElement("div");
+      div.textContent = d.new_part;
+      div.onclick = () => showResult(key);
+      suggestions.appendChild(div);
+      count++;
+      if (count >= 15) break; // LIMIT results = FAST
+    }
+  }
+});
+
+function showResult(key) {
+  const d = priceData[key];
+  const unitText = d.unit === 100 ? "(per 100 units)" : "(per unit)";
+  suggestions.innerHTML = "";
+
+  resultBox.innerHTML = `
+    <div><strong>New Part No:</strong> ${d.new_part}</div>
+    <div><strong>Old Part No:</strong> ${d.old_part || "-"}</div>
+    <div><strong>Alt / OEM Part:</strong> ${d.third_part || "-"}</div>
+    <div><strong>OEM:</strong> ${d.oem}</div>
+    <div><strong>MRP:</strong> ${d.mrp} ${unitText}</div>
+  `;
+}
+</script>
+
+</body>
+</html>
