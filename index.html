@@ -57,21 +57,33 @@
 <div class="box">
   <h2>MRP Lookup</h2>
 
-  <input type="text" id="search" placeholder="Type part number...">
+  <input type="text" id="search" placeholder="Type part number..." autocomplete="off">
   <div class="suggestions" id="suggestions"></div>
 
   <div class="result" id="result"></div>
 </div>
 
+<!-- PRICE DATA -->
 <script src="data.js"></script>
 
 <script>
 const searchInput = document.getElementById("search");
 const suggestions = document.getElementById("suggestions");
 const resultBox = document.getElementById("result");
-
 const keys = Object.keys(priceData);
 
+/* 🔒 Normalize Bosch injector numbers */
+function normalizePart(input) {
+  input = input.trim();
+
+  // Bosch injectors: 10-digit → 13-digit
+  if (/^\d{10}$/.test(input)) {
+    return input + "000";
+  }
+  return input;
+}
+
+/* 🔍 Suggestions (DISPLAY ONLY – NO PRICE LOGIC) */
 searchInput.addEventListener("input", function () {
   const q = this.value.trim().toLowerCase();
   suggestions.innerHTML = "";
@@ -82,32 +94,51 @@ searchInput.addEventListener("input", function () {
   let count = 0;
   for (let key of keys) {
     const d = priceData[key];
-    const values = [d.new_part, d.old_part, d.third_part].join(" ").toLowerCase();
+    const values = [d.new_part, d.old_part, d.third_part]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     if (values.includes(q)) {
       const div = document.createElement("div");
       div.textContent = d.new_part;
-      div.onclick = () => showResult(key);
+      div.onclick = () => showResult(d.new_part);
       suggestions.appendChild(div);
       count++;
-      if (count >= 15) break; // LIMIT results = FAST
+      if (count >= 15) break;
     }
   }
 });
 
-function showResult(key) {
-  const d = priceData[key];
-  const unitText = d.unit === 100 ? "(per 100 units)" : "(per unit)";
+/* ✅ Final SAFE lookup */
+function showResult(inputPart) {
+  const normalized = normalizePart(inputPart);
+  const d = priceData[normalized];
+
   suggestions.innerHTML = "";
+
+  if (!d) {
+    resultBox.innerHTML = "❌ Part not found";
+    return;
+  }
+
+  const unitText = d.unit === 100 ? "(per 100 units)" : "(per unit)";
 
   resultBox.innerHTML = `
     <div><strong>New Part No:</strong> ${d.new_part}</div>
     <div><strong>Old Part No:</strong> ${d.old_part || "-"}</div>
     <div><strong>Alt / OEM Part:</strong> ${d.third_part || "-"}</div>
     <div><strong>OEM:</strong> ${d.oem}</div>
-    <div><strong>MRP:</strong> ${d.mrp} ${unitText}</div>
+    <div><strong>MRP:</strong> ₹${d.mrp} ${unitText}</div>
   `;
 }
+
+/* 🔍 Enter key support */
+searchInput.addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    showResult(this.value);
+  }
+});
 </script>
 
 </body>
